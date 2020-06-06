@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>times tables</title>
+</head>
+<style>
+    html {
+        height: 100%;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 4vw;
+    }
+
+    body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+    }
+
+    #display {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+    }
+
+    input[type=text] {
+        font-size: 4vw;
+    }
+
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+        font-size: 4vw;
+    }
+
+    input[type=number] {
+        -moz-appearance: textfield;
+        width: 2em;
+        font-size: 4vw;
+    }
+
+    .right {
+        color: green;
+        font-weight: bold;
+    }
+
+    .wrong {
+        color: orange;
+        font-weight: bold;
+    }
+
+    .score {
+        position: absolute;
+        top: 0;
+        left: 0;
+        font-weight: bold;
+    }
+</style>
+
+<body>
+    <div class="score">Score: <span id="score"></span></div>
+    <div id="display"></div>
+    <template id="getname">
+        <div class="question">What's your name?</div>
+        <input class="answer" type="text" id="answer">
+    </template>
+    <template id="get-times-table">
+        <div class="greeting">
+            Hello <b>${name}!</b>
+        </div>
+        <div class="greeting">
+            What times-table do you want to do? [0-12]
+        </div>
+        <div class="answer">
+            <input class="answer" type="number" id="answer">
+        </div>
+    </template>
+    <template id="get-times-table-again">
+        <div class="greeting">
+            Thanks ${name}, but ${base} is not in the range [0-12]. Try again, please!
+            <input class="answer" type="number" id="answer">
+        </div>
+    </template>
+    <template id="product">
+        <span class="question">
+            ${base} x ${num} = <input size="1" type="number" id="answer">
+        </span>
+    </template>
+    <template id="part">
+        <span class="question">
+            ${base} x <input size="1" type="number" id="answer"> = ${num}
+        </span>
+    </template>
+    <template id="product-correct-answer">
+        <div class="question">
+            <span>${base} x ${num} = ${givenAnswer}</span>
+        </div>
+        <div class="right">Correct ${name}!</div>
+    </template>
+    <template id="product-wrong-answer">
+        <div>
+            <span class="question">${base} x ${num} = ${givenAnswer}</span>
+        </div>
+        <div class="wrong">Sorry, the right answer is ${correctAnswer}</div>
+    </template>
+    <template id="part-correct-answer">
+        <div class="question">
+            <span>${base} x ${givenAnswer} = ${num}</span>
+        </div>
+        <div class="right">Correct!</div>
+    </template>
+    <template id="part-wrong-answer">
+        <div>
+            <span class="question">${base} x ${givenAnswer} = ${num}</span>
+        </div>
+        <div class="wrong">Sorry ${name}, the right answer is ${correctAnswer}</div>
+    </template>
+</body>
+<script>
+    var name = "";
+    var base = 1;
+    var num = 1;
+    var correctAnswer = 1;
+    var givenAnswer = 1;
+    var score = 0;
+
+    const variables = ["name", "base", "num", "correctAnswer", "givenAnswer"];
+
+    window.onload = () => {
+        showTemplate("getname", nameSelected);
+    }
+
+    function nameSelected(answer) {
+        name = answer;
+        showTemplate("get-times-table", timesTableSelected);
+    }
+
+    function timesTableSelected(answer) {
+        base = answer;
+        if (answer < 0 || answer > 12) {
+            showTemplate("get-times-table-again", timesTableSelected);
+            return;
+        }
+        showProductQuestion();
+    }
+
+    function showQuestion() {
+        if (Math.random() >= 0.5) {
+            showProductQuestion();
+        } else {
+            showPartQuestion();
+        }
+    }
+
+    function showProductQuestion() {
+        num = getRandomNumber(num);
+        correctAnswer = base * num;
+        showTemplate("product", onProductAnswer);
+    }
+
+    function showPartQuestion() {
+        correctAnswer = getRandomNumber(num);
+        num = base * correctAnswer;
+        showTemplate("part", onPartAnswer);
+    }
+
+    function getRandomNumber(last) {
+        var result = last;
+        while (result == last) {
+            result = Math.round(Math.random() * 12);
+        }
+        return result;
+    }
+
+    function onProductAnswer(answer) {
+        givenAnswer = answer;
+        if (answer == correctAnswer) {
+            score++;
+            showTemplate("product-correct-answer")
+            setTimeout(showQuestion, 2000);
+        } else {
+            showTemplate("product-wrong-answer");
+            setTimeout(showQuestion, 3000);
+        }
+    }
+
+    function onPartAnswer(answer) {
+        givenAnswer = answer;
+        if (answer == correctAnswer) {
+            score++;
+            showTemplate("part-correct-answer")
+            setTimeout(showQuestion, 2000);
+        } else {
+            showTemplate("part-wrong-answer");
+            setTimeout(showQuestion, 3000);
+        }
+    }
+
+    function showTemplate(templateId, answerHandler) {
+        const template = document.getElementById(templateId);
+        const html = template.innerHTML;
+        const htmlReplaced = replaceVariables(html);
+        document.getElementById("display").innerHTML = htmlReplaced;
+        if (answerHandler) {
+            const answer = document.getElementById("answer");
+            answer.onkeydown = (evt) => {
+                const keycode = evt ? (evt.which ? evt.which : evt.keyCode) : event.keyCode;
+                if (keycode == 13) {
+                    answerHandler(answer.value);
+                }
+            }
+            answer.focus()
+        }
+        setScore();
+    }
+
+    function setScore() {
+        document.getElementById("score").innerText = score;
+    }
+
+    function replaceVariables(html) {
+        variables.forEach(v => {
+            html = html.replace("${" + v + "}", eval(v))
+        })
+        return html;
+    }
+</script>
+
+</html>
